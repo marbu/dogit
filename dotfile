@@ -1,0 +1,50 @@
+#!/bin/bash
+# dotfiles git repo wrapper
+
+REPO_DIR=$HOME/tvorba/dotfiles.git
+
+show_help() {
+  echo -e "Usage: dotfile <command> [command-options]\n"
+  echo """Commands:
+  <command> any git command
+  help      this message"""
+}
+
+git_init() {
+  if [[ -d $REPO_DIR ]]; then
+    echo "dotfile: repodir already exists" >&2
+  else
+    $DEBUG mkdir $REPO_DIR
+    $DEBUG git init --bare $REPO_DIR
+    echo '*' > ~/.gitignore
+    git_wrapper add -f ~/.gitignore
+    git_wrapper commit -m 'initial commit (just gitignore)'
+    git_wrapper checkout -b local_"$(hostname)"
+  fi
+}
+
+git_wrapper() {
+  $DEBUG git --git-dir=$REPO_DIR --work-tree=$HOME "$@"
+}
+
+#
+# main
+#
+
+if [[ $# = 0 ]]; then
+  show_help
+  exit
+fi
+
+# debug mode
+if [[ $1 = "-d" ]]; then
+  DEBUG=echo
+  shift
+fi
+
+case $1 in
+  -h|--help|help) show_help;;
+  init) git_init;;
+  add)  shift; git_wrapper add -f $@;;
+  *)    git_wrapper $@;;
+esac
