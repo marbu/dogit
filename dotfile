@@ -1,16 +1,34 @@
 #!/bin/bash
 # dotfiles git repo wrapper
 
-REPO_DIR=$HOME/tvorba/dotfiles.git
+# configuration file, contains path to REPO_DIR
+CONF_FILE=$HOME/.dotfile
 
 show_help() {
   echo -e "Usage: dotfile <command> [command-options]\n"
   echo """Commands:
-  <command> any git command
-  help      this message"""
+  init path  create new bare git repository for dotfiles in given directory
+  <command>  any git command
+  help       this message"""
 }
 
 git_init() {
+  # check mandatory argument
+  if [[ ! $1 ]]; then
+    echo -e "dotfile: init error: directory was not specified\n" >&2
+    show_help
+    exit 1
+  fi
+  if [[ ! -d $1 ]]; then
+    echo "dotfile: init error: specified directory doesn't exist" >&2
+    exit 1
+  fi
+  # create config file if needed
+  if [[ ! $REPO_DIR ]]; then
+    REPO_DIR=$1/dotfiles.git
+    echo "$REPO_DIR" > $CONF_FILE
+  fi
+  # create repo
   if [[ -d $REPO_DIR ]]; then
     echo "dotfile: repodir already exists" >&2
   else
@@ -24,6 +42,12 @@ git_init() {
 }
 
 git_wrapper() {
+  if [[ ! $REPO_DIR ]]; then
+    echo -n "dotfile: config file '$CONF_FILE' doesn't exists" >&2
+    echo -e " (try init first?)\n" >&2
+    show_help
+    exit 1
+  fi
   $DEBUG git --git-dir=$REPO_DIR --work-tree=$HOME "$@"
 }
 
@@ -42,9 +66,18 @@ if [[ $1 = "-d" ]]; then
   shift
 fi
 
+# load configuration
+if [[ -f "$CONF_FILE" ]]; then
+  REPO_DIR=$(head -1 "$CONF_FILE")
+  if [[ ! -d $REPO_DIR ]]; then
+    echo "wrong configuration: repository '$REPO_DIR' doesn't exists" >&2
+    exit 1
+  fi
+fi
+
 case $1 in
   -h|--help|help) show_help;;
-  init) git_init;;
+  init) git_init "$2";;
   add)  shift; git_wrapper add -f $@;;
   *)    git_wrapper $@;;
 esac
