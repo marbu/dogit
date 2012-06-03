@@ -37,7 +37,7 @@ git_init() {
     echo '*' > ~/.gitignore
     git_wrapper add -f ~/.gitignore
     git_wrapper commit -m 'initial commit (just gitignore)'
-    git_wrapper checkout -b local_"$(hostname)"
+    git_wrapper checkout -b local_"$(hostname)_$(whoami)"
   fi
 }
 
