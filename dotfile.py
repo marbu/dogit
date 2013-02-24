@@ -93,6 +93,8 @@ class DotfileRepo(object):
         """
         Wrap git command for given args list.
         """
+        if args[0] == "add":
+            args.insert(1, "-f")
         cmd = ["git",
             "--git-dir=%s" % self.repo_dir,
             "--work-tree=%s" % self.tree_dir]
@@ -204,8 +206,6 @@ def main():
         return 1
 
     # other commands are executed via git wrapper
-    if args[0] == "add":
-        args = ["add", "-f"].extend(args[1:])
     return repo.git(args)
 
 if __name__ == '__main__':
