@@ -22,7 +22,7 @@ The idea itself is not new, see eg.:
  * github.com/silas/scripts/blob/master/bin/config
  * many others ...
 
-Example of such setup (using unique local branch):
+Example of such setup:
 
     $ mkdir ~/.config.git
     $ alias dotfile='git --git-dir=$HOME/.config.git/ --work-tree=$HOME'
@@ -30,7 +30,6 @@ Example of such setup (using unique local branch):
     $ echo '*' > .gitignore
     $ dotfile add -f ~/.gitignore
     $ dotfile commit -m 'initial commit (just gitignore)'
-    $ dotfile branch -b local_$(uname)_$(whoami)
 
 This script provides the same functionality as init command:
 
@@ -86,8 +85,6 @@ class DotfileRepo(object):
         self.repo_dir = None
         self.tree_dir = tree_dir
         self.debug = debug
-        self.branch_name = "local_%s_%s" % (
-            platform.uname()[1], getpass.getuser())
 
     def wrap(self, args):
         """
@@ -141,7 +138,6 @@ class DotfileRepo(object):
 
         self.git(["add", "-f", git_ignore_path])
         self.git(["commit", "-m", "initial commit (just gitignore)"])
-        self.git(["checkout", "-b", self.branch_name])
 
 
 def print_help():
