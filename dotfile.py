@@ -89,10 +89,18 @@ class DotfileRepo(object):
         self.branch_name = "local_%s_%s" % (
             platform.uname()[1], getpass.getuser())
 
+    def ls(self):
+        """
+        New command: list all files in repository.
+        """
+        return self.git(["ls-tree", "--full-tree", "--name-only", "-r", "HEAD"])
+
     def git(self, args):
         """
         Wrap git command for given args list.
         """
+        if args[0] == "ls":
+            return self.ls()
         if args[0] == "add":
             args.insert(1, "-f")
         cmd = ["git",
@@ -136,8 +144,9 @@ def print_help():
         "-r, --repo name  use repository name instead of default one",
         ]
     commands = [
-        "init path-to-repo-dir   initialize new repository on given path",
-        "any-git-command         run this git operation on dotfile repo",
+        "init path-to-repo-dir  initialize new repository on given path",
+        "ls                     list all files in repository (via git ls-tree)",
+        "any-git-command        run this git operation on dotfile repo",
         ]
     print usage
     print "Options:"
