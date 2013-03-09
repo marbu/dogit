@@ -89,7 +89,18 @@ class DotfileRepo(object):
         self.branch_name = "local_%s_%s" % (
             platform.uname()[1], getpass.getuser())
 
-    def ls(self):
+    def wrap(self, args):
+        """
+        Wrap git args list: try new commands first, then general git wrapper.
+        """
+        if len(args) < 1:
+            return
+        if args[0] == "ls":
+            return self.cmd_ls()
+        else:
+            return self.git(args)
+
+    def cmd_ls(self):
         """
         New command: list all files in repository.
         """
@@ -99,8 +110,6 @@ class DotfileRepo(object):
         """
         Wrap git command for given args list.
         """
-        if args[0] == "ls":
-            return self.ls()
         if args[0] == "add":
             args.insert(1, "-f")
         cmd = ["git",
@@ -215,7 +224,7 @@ def main():
         return 1
 
     # other commands are executed via git wrapper
-    return repo.git(args)
+    return repo.wrap(args)
 
 if __name__ == '__main__':
     sys.exit(main())
