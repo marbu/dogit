@@ -45,7 +45,6 @@ Note: you can see what the wrapper does using '--debug' option.
 
 # TODO
 # compatibility with python 2.4
-# add entry into config file durint init
 # list available repos
 # branching, public pushes, merging
 
@@ -81,8 +80,8 @@ class DotfileRepo(object):
     Git repository wrapper.
     """
 
-    def __init__(self, tree_dir=os.getenv("HOME"), debug=False):
-        self.repo_dir = None
+    def __init__(self, repo_dir=None, tree_dir=None, debug=False):
+        self.repo_dir = repo_dir
         self.tree_dir = tree_dir
         self.debug = debug
 
@@ -146,7 +145,7 @@ def print_help():
     options = [
         "-h, --help       show this help message and exit",
         "-d, --debug      enable debug mode",
-        "-r, --repo name  use repository name instead of default one",
+        "-r, --repo name  use repository name instead of primary one",
         ]
     commands = [
         "init path-to-repo-dir  initialize new repository on given path",
@@ -161,7 +160,14 @@ def print_help():
     for cmd in commands:
         print "  %s" % cmd
 
+
 def main():
+    # default configuration
+    repo_name = "primary-repo"
+    repo_dir = None
+    tree_dir = os.getenv("HOME")
+    debug = False
+
     # using getopts config parsing to make wrapping of any command possible
     short_opts = "hdr:"
     long_opts = ["help", "debug", "repo="]
@@ -174,11 +180,6 @@ def main():
     if len(args) == 0:
         print_help()
         return 0
-
-    # default configuration
-    config_file = os.path.join(os.getenv("HOME"), ".dotfile")
-    repo_name = "default"
-    debug = False
     for opt, arg in opts:
         if opt in ("-h", "help"):
             print_help()
@@ -188,14 +189,39 @@ def main():
         elif opt in ("-d", "--debug"):
             debug = True
 
-    # repository initialization
-    repo = DotfileRepo(debug=debug)
+    # try config file
+    config = ConfigParser.SafeConfigParser()
+    files_used = config.read([
+        os.path.expanduser("~/.dotfile"),
+        os.path.expanduser("~/.config/dotfile.conf"),
+        ])
+    if debug:
+        sys.stderr.write("using config files: %s\n" % files_used)
+    if config.has_option(repo_name, "repo_dir"):
+        repo_dir = config.get(repo_name, "repo_dir")
+    if config.has_option(repo_name, "tree_dir"):
+        tree_dir = config.get(repo_name, "tree_dir")
+
+    repo = DotfileRepo(repo_dir, tree_dir, debug=debug)
+
+    # try to initialize repository first
     if args[0] == "init":
+        if repo_dir is not None:
+            msg = "Error: repository is already here: %s\n" % repo_dir
+            sys.stderr.write(msg)
+            return 1
         if len(args) == 2:
+            repo_dir = args[1]
             try:
-                retcode = repo.build(repo_dir=args[1])
+                retcode = repo.build(repo_dir=repo_dir)
+                config.add_section(repo_name)
+                config.set(repo_name, "repo_dir", repo_dir)
+                config.set(repo_name, "tree_dir", tree_dir)
+                config_file = open(os.path.expanduser("~/.dotfile"), "w")
+                config.write(config_file)
+                config_file.close()
             except (IOError, OSError), ex:
-                print "Error: repository init failed: %s" % ex
+                sys.stderr.write("Error: repository init failed: %s\n" % ex)
                 retcode = 1
             return retcode
         else:
@@ -204,17 +230,11 @@ def main():
             print_help()
             return 1
 
-    conf_parser = ConfigParser.SafeConfigParser()
-    try:
-        conf_file = open(config_file)
-        conf_parser.readfp(conf_file)
-        conf_file.close()
-        repo.repo_dir = conf_parser.get(repo_name, "repo_dir")
-        # optional configuration
-        if conf_parser.has_option(repo_name, "tree_dir"):
-            repo.tree_dir = conf_parser.get(repo_name, "tree_dir")
-    except (IOError, ConfigParser.Error), ex:
-        msg = "Error: problem with config file or repository: %s\n\n" % ex
+    if repo_dir is None:
+        if repo_name == "primary-repo":
+            msg = "Error: Initialize primary repository first.\n\n"
+        else:
+            msg = "Error: No such repository: '%s'.\n\n" % repo_name
         sys.stderr.write(msg)
         print_help()
         return 1
