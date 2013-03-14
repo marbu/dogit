@@ -224,12 +224,12 @@ def main():
             except (IOError, OSError), ex:
                 sys.stderr.write("Error: repository init failed: %s\n" % ex)
                 retcode = 1
-            return retcode
         else:
             msg = "Error: specify path for the repository (eg. ~/.dotrepo.git)"
             sys.stderr.write(msg + "\n\n")
             print_help()
-            return 1
+            retcode = 1
+        return retcode
 
     # list names of all repositories
     if args[0] == "repos":
