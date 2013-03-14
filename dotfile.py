@@ -150,6 +150,7 @@ def print_help():
     commands = [
         "init path-to-repo-dir  initialize new repository on given path",
         "ls                     list all files in repository (via git ls-tree)",
+        "repos                  list all initialized dotfile repositories",
         "any-git-command        run this git operation on dotfile repo",
         ]
     print usage
@@ -229,6 +230,12 @@ def main():
             sys.stderr.write(msg + "\n\n")
             print_help()
             return 1
+
+    # list names of all repositories
+    if args[0] == "repos":
+        for section in config.sections():
+            print section
+        return
 
     if repo_dir is None:
         if repo_name == "primary-repo":
