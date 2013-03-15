@@ -17,6 +17,7 @@ of config files we actually want to track.
 
 The idea itself is not new, see eg.:
 
+ * psung.blogspot.com/2008/06/managing-dotfiles-with-git-continued.html
  * silas.sewell.org/blog/2009/03/08/profile-management-with-git-and-github/
  * necoro.wordpress.com/2009/10/08/managing-your-configuration-files-with-git-and-stgit
  * github.com/silas/scripts/blob/master/bin/config
