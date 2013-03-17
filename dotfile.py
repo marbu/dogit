@@ -122,7 +122,7 @@ class DotfileRepo(object):
         without touching the working tree.
         """
         self.repo_dir = repo_dir
-        local_branch = "local_%s@%s" % (platform.uname()[1], getpass.getuser())
+        local_branch = "local_%s@%s" % (getpass.getuser(), platform.uname()[1])
 
         self.git(["clone", "--bare", repo_url, repo_dir])
         # create new local branch
