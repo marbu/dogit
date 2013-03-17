@@ -46,8 +46,7 @@ Note: you can see what the wrapper does using '--debug' option.
 
 # TODO
 # compatibility with python 2.4
-# list available repos
-# branching, public pushes, merging
+# revamp init and clone command code
 
 
 import os
@@ -115,6 +114,28 @@ class DotfileRepo(object):
         cmd.extend(args)
         return shell_cmd(cmd, self.debug)
 
+    def clone(self, repo_url, repo_dir):
+        """
+        Setup repository by cloning from remote repo.
+
+        Details: clone into bare repo, create local branch and switch into it
+        without touching the working tree.
+        """
+        self.repo_dir = repo_dir
+        local_branch = "local_%s@%s" % (platform.uname()[1], getpass.getuser())
+
+        self.git(["clone", "--bare", repo_url, repo_dir])
+        # create new local branch
+        self.git(["branch", local_branch])
+        # switch branch on bare repository (to not touch files in working tree)
+        self.git(["symbolic-ref", "HEAD", "refs/heads/%s" % local_branch])
+        self.git(["config", "--bool", "core.bare", "false"])
+        self.git(["reset"])
+        if not self.debug:
+            print "Check state of the repository:"
+        self.git(["branch"])
+        self.git(["status", "-s"])
+
     def build(self, repo_dir):
         """
         Create new git repository for dotfiles.
@@ -149,10 +170,11 @@ def print_help():
         "-r, --repo name  use repository name instead of primary one",
         ]
     commands = [
-        "init path-to-repo-dir  initialize new repository on given path",
-        "ls                     list all files in repository (via git ls-tree)",
-        "repos                  list all initialized dotfile repositories",
-        "any-git-command        run this git operation on dotfile repo",
+        "init  path       create new repo on given path (eg. ~/data/dot.git)",
+        "clone url path   clone repository from url into local repo on path",
+        "ls               list all files in repository (via git ls-tree)",
+        "repos            list all initialized dotfile repositories",
+        "any-git-command  run this git operation on dotfile repo",
         ]
     print usage
     print "Options:"
@@ -162,6 +184,17 @@ def print_help():
     for cmd in commands:
         print "  %s" % cmd
 
+def update_config(config, repo_name, **kwargs):
+    """
+    Update configuration for current repo.
+    """
+    if not config.has_section(repo_name):
+        config.add_section(repo_name)
+    for conf_name, conf_val in kwargs.iteritems():
+        config.set(repo_name, conf_name, conf_val)
+    config_file = open(os.path.expanduser("~/.dotfile"), "w")
+    config.write(config_file)
+    config_file.close()
 
 def main():
     # default configuration
@@ -206,27 +239,48 @@ def main():
 
     repo = DotfileRepo(repo_dir, tree_dir, debug=debug)
 
+    # show error when initializing repo which seems to already exist
+    if args[0] in ("init", "clone") and repo_dir is not None:
+        msg = "Error: repository is already here: %s\n" % repo_dir
+        sys.stderr.write(msg)
+        return 1
+
     # try to initialize repository first
     if args[0] == "init":
-        if repo_dir is not None:
-            msg = "Error: repository is already here: %s\n" % repo_dir
-            sys.stderr.write(msg)
-            return 1
         if len(args) == 2:
             repo_dir = args[1]
             try:
                 retcode = repo.build(repo_dir=repo_dir)
-                config.add_section(repo_name)
-                config.set(repo_name, "repo_dir", repo_dir)
-                config.set(repo_name, "tree_dir", tree_dir)
-                config_file = open(os.path.expanduser("~/.dotfile"), "w")
-                config.write(config_file)
-                config_file.close()
+                if not debug:
+                    update_config(config, repo_name,
+                        repo_dir=repo_dir,
+                        tree_dir=tree_dir)
             except (IOError, OSError), ex:
                 sys.stderr.write("Error: repository init failed: %s\n" % ex)
                 retcode = 1
         else:
             msg = "Error: specify path for the repository (eg. ~/.dotrepo.git)"
+            sys.stderr.write(msg + "\n\n")
+            print_help()
+            retcode = 1
+        return retcode
+
+    # clone repository from given url
+    if args[0] == "clone":
+        if len(args) == 3:
+            repo_url = args[1]
+            repo_dir = args[2]
+            try:
+                retcode = repo.clone(repo_url, repo_dir)
+                if not debug:
+                    update_config(config, repo_name,
+                        repo_dir=repo_dir,
+                        tree_dir=tree_dir)
+            except (IOError, OSError), ex:
+                sys.stderr.write("Error: repository clone failed: %s\n" % ex)
+                retcode = 1
+        else:
+            msg = "Error: specify source url for origin repo and local path"
             sys.stderr.write(msg + "\n\n")
             print_help()
             retcode = 1
