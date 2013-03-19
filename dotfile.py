@@ -106,11 +106,21 @@ class DotfileRepo(object):
         """
         Wrap git command for given args list.
         """
+        cmd = ["git", "--git-dir=%s" % self.repo_dir]
+        # HACK: submodule command uses --work-tree as a path to submodule itself
+        if args[0] == "submodule":
+            if len(args) > 1 and args[1] == "add":
+                args.insert(2, "-f")
+            else:
+                # when not adding new module, it will cd into treedir itself
+                if self.debug:
+                    print "cd %s" % self.tree_dir
+                else:
+                    os.chdir(self.tree_dir)
+        else:
+            cmd.append("--work-tree=%s" % self.tree_dir)
         if args[0] == "add":
             args.insert(1, "-f")
-        cmd = ["git",
-            "--git-dir=%s" % self.repo_dir,
-            "--work-tree=%s" % self.tree_dir]
         cmd.extend(args)
         return shell_cmd(cmd, self.debug)
 
