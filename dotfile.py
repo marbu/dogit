@@ -2,51 +2,23 @@
 # -*- coding: utf8 -*-
 
 """
-Simple git wrapper for dotfile management.
-
-The idea
-========
-
-The trick is to turn your home directory into git repository and track
-configuration files directly in the orginal place.
-This way you don't need to setup symlinks for tracked configuration files or
-copy them into the right place manually.
-Since homedir usually contains many other files besides configuration worth
-tracking, git needs to ignore all files in the working tree with the exception
-of config files we actually want to track.
-
-The idea itself is not new, see eg.:
-
- * psung.blogspot.com/2008/06/managing-dotfiles-with-git-continued.html
- * silas.sewell.org/blog/2009/03/08/profile-management-with-git-and-github/
- * necoro.wordpress.com/2009/10/08/managing-your-configuration-files-with-git-and-stgit
- * github.com/silas/scripts/blob/master/bin/config
- * many others ...
-
-Example of such setup:
-
-    $ mkdir ~/.config.git
-    $ alias dotfile='git --git-dir=$HOME/.config.git/ --work-tree=$HOME'
-    $ dotfile init
-    $ echo '*' > .gitignore
-    $ dotfile add -f ~/.gitignore
-    $ dotfile commit -m 'initial commit (just gitignore)'
-
-This script provides the same functionality as init command:
-
-    $ dotfile.py init ~/.config.git
-
-Then to include config file:
-
-    $ dotfile.py add ~/.gitconfig
-    $ dotfile.py commit -m 'initial git configuration'
-
-Note: you can see what the wrapper does using '--debug' option.
+dotfile: simple git wrapper for dotfile management
 """
 
-# TODO
-# compatibility with python 2.4
-# revamp init and clone command code
+# Copyright (C) 2013 martin.bukatovic@gmail.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 import os
