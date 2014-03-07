@@ -1,9 +1,9 @@
-# gidot - simple git wrapper for dotfile management
+# gidot - git based dotfiles manager
 
 ## The idea
 
 The trick is to turn your home directory into git repository and track
-configuration files directly in the orginal place.
+configuration files directly in the original place.
 This way you don't need to setup symlinks for tracked configuration files or
 copy them into the right place manually.
 The main advantage of such approach is that you are still able to use all git
@@ -23,7 +23,7 @@ This idea itself is not new, see eg.:
 ## Example of such setup
 
 To get a better idea what's going on here, let's see how it may work if done
-in bash by hand::
+in bash by hand:
 
     $ mkdir ~/.config.git
     $ alias dotfile='git --git-dir=$HOME/.config.git/ --work-tree=$HOME'
