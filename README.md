@@ -1,4 +1,4 @@
-# gidot - git based dotfiles manager
+# Dotfiles management tool based on git
 
 ## The idea
 
@@ -34,11 +34,11 @@ in bash by hand:
 
 This script provides the same functionality as init command:
 
-    $ dotfile.py init ~/.config.git
+    $ dogit.py init ~/.config.git
 
 Then to include config file:
 
-    $ dotfile.py add ~/.gitconfig
-    $ dotfile.py commit -m 'initial git configuration'
+    $ dogit.py add ~/.gitconfig
+    $ dogit.py commit -m 'initial git configuration'
 
 Note: you can see what the wrapper does using '--debug' option.

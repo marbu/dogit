@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 """
-dotfile: simple git wrapper for dotfile management
+dogit: simple git wrapper for dotfile management
 """
 
 # Copyright (C) 2013 martin.bukatovic@gmail.com
