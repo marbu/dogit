@@ -52,6 +52,11 @@ class DotfileRepo(object):
     Git repository wrapper.
     """
 
+    # predefined git commands
+    _commands = {
+        "ls": ["ls-tree", "--full-tree", "--name-only", "-r", "HEAD"],
+        }
+
     def __init__(self, repo_dir=None, tree_dir=None, debug=False):
         self.repo_dir = repo_dir
         self.tree_dir = tree_dir
@@ -63,16 +68,9 @@ class DotfileRepo(object):
         """
         if len(args) < 1:
             return
-        if args[0] == "ls":
-            return self.cmd_ls()
-        else:
-            return self.git(args)
-
-    def cmd_ls(self):
-        """
-        New command: list all files in repository.
-        """
-        return self.git(["ls-tree", "--full-tree", "--name-only", "-r", "HEAD"])
+        # if args doesn't match any predefined command, just run it as it is
+        arg_list = self._commands.get(args[0]) or args
+        return self.git(arg_list)
 
     def git(self, args):
         """
