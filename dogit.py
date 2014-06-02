@@ -62,17 +62,7 @@ class DotfileRepo(object):
         self.tree_dir = tree_dir
         self.debug = debug
 
-    def wrap(self, args):
-        """
-        Wrap git args list: try new commands first, then general git wrapper.
-        """
-        if len(args) < 1:
-            return
-        # if args doesn't match any predefined command, just run it as it is
-        arg_list = self._commands.get(args[0]) or args
-        return self.git(arg_list)
-
-    def git(self, args):
+    def _git(self, *args):
         """
         Wrap git command for given args list.
         """
@@ -94,6 +84,16 @@ class DotfileRepo(object):
         cmd.extend(args)
         return shell_cmd(cmd, self.debug)
 
+    def wrap(self, args):
+        """
+        Wrap git command for given args list, predefined commands has priority.
+        """
+        if len(args) < 1:
+            return
+        # if args doesn't match any predefined command, just run it as it is
+        args = self._commands.get(args[0]) or args
+        return self._git(*args)
+
     def clone(self, repo_url, repo_dir):
         """
         Setup repository by cloning from remote repo.
@@ -104,17 +104,17 @@ class DotfileRepo(object):
         self.repo_dir = repo_dir
         local_branch = "local_%s@%s" % (getpass.getuser(), platform.uname()[1])
 
-        self.git(["clone", "--bare", repo_url, repo_dir])
+        self._git("clone", "--bare", repo_url, repo_dir)
         # create new local branch
-        self.git(["branch", local_branch])
+        self._git("branch", local_branch)
         # switch branch on bare repository (to not touch files in working tree)
-        self.git(["symbolic-ref", "HEAD", "refs/heads/%s" % local_branch])
-        self.git(["config", "--bool", "core.bare", "false"])
-        self.git(["reset"])
+        self._git("symbolic-ref", "HEAD", "refs/heads/%s" % local_branch)
+        self._git("config", "--bool", "core.bare", "false")
+        self._git("reset")
         if not self.debug:
             print "Check state of the repository:"
-        self.git(["branch"])
-        self.git(["status", "-s"])
+        self._git("branch")
+        self._git("status", "-s")
 
     def build(self, repo_dir):
         """
@@ -127,7 +127,7 @@ class DotfileRepo(object):
         else:
             os.mkdir(self.repo_dir)
 
-        self.git(["init", self.repo_dir])
+        self._git("init", self.repo_dir)
 
         git_ignore_path = os.path.join(self.tree_dir, ".gitignore")
         if self.debug:
@@ -137,8 +137,8 @@ class DotfileRepo(object):
             git_ignore.write("*\n")
             git_ignore.close()
 
-        self.git(["add", "-f", git_ignore_path])
-        self.git(["commit", "-m", "initial commit (just gitignore)"])
+        self._git("add", "-f", git_ignore_path)
+        self._git("commit", "-m", "initial commit (just gitignore)")
 
 
 def print_help():
