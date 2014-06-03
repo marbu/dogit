@@ -72,6 +72,7 @@ class DotfileRepo(object):
         """
         Wrap git command for given args list.
         """
+        args = list(args)
         cmd = ["git", "--git-dir=%s" % self.repo_dir]
         # HACK: submodule command uses --work-tree as a path to submodule itself
         if args[0] == "submodule":
@@ -143,7 +144,7 @@ class DotfileRepo(object):
             git_ignore.write("*\n")
             git_ignore.close()
 
-        self._git("add", "-f", git_ignore_path)
+        self._git("add", git_ignore_path)
         self._git("commit", "-m", "initial commit (just gitignore)")
 
 
