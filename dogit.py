@@ -46,6 +46,12 @@ def shell_cmd(cmd_list, debug=False):
     else:
         return subprocess.call(cmd_list)
 
+def get_local_branch_name():
+    """
+    Generate default name of local git branch: local_user@hostname
+    """
+    return "local_%s@%s" % (getpass.getuser(), platform.uname()[1])
+
 
 class DotfileRepo(object):
     """
@@ -102,7 +108,7 @@ class DotfileRepo(object):
         without touching the working tree.
         """
         self.repo_dir = repo_dir
-        local_branch = "local_%s@%s" % (getpass.getuser(), platform.uname()[1])
+        local_branch = get_local_branch_name()
 
         self._git("clone", "--bare", repo_url, repo_dir)
         # create new local branch
