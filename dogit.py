@@ -216,14 +216,15 @@ def main():
         elif opt in ("-d", "--debug"):
             debug = True
 
-    # try config file
+    # try to read config file
     config = ConfigParser.SafeConfigParser()
     files_used = config.read([
         os.path.expanduser("~/.dotfile"),
-        os.path.expanduser("~/.config/dotfile.conf"),
-        ])
+        os.path.expanduser("~/.dogit"),
+        os.path.expanduser("~/.config/dogit.conf"),])
     if debug:
         sys.stderr.write("using config files: %s\n" % files_used)
+
     if config.has_option(repo_name, "repo_dir"):
         repo_dir = config.get(repo_name, "repo_dir")
     if config.has_option(repo_name, "tree_dir"):
