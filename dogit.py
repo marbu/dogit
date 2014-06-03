@@ -227,8 +227,8 @@ def main():
 
     # show error when initializing repo which seems to already exist
     if args[0] in ("init", "clone") and repo_dir is not None:
-        msg = "Error: repository is already here: %s\n" % repo_dir
-        sys.stderr.write(msg)
+        msg = "Error: repository named '{0:s}' is already defined: {1:s}\n"
+        sys.stderr.write(msg.format(repo_name, repo_dir))
         return 1
 
     # try to initialize repository first
