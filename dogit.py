@@ -123,11 +123,13 @@ class DotfileRepo(object):
         self._git("branch")
         self._git("status", "-s")
 
-    def build(self, repo_dir):
+    def build(self, repo_dir, tree_dir=None):
         """
         Create new git repository for dotfiles.
         """
         self.repo_dir = repo_dir
+        if tree_dir is not None:
+            self.tree_dir = tree_dir
 
         if self.debug:
             print "mkdir %s" % self.repo_dir
@@ -157,7 +159,9 @@ def print_help():
         "-r, --repo name  use repository name instead of primary one",
         ]
     commands = [
-        "init  path       create new repo on given path (eg. ~/data/dot.git)",
+        "init repo [tree] create new dogit repository, where:",
+        "                 repo is bare git repo path (eg. ~/data/dot.git)",
+        "                 tree (optional) is tree dir path ($HOME by default)",
         "clone url path   clone repository from url into local repo on path",
         "ls               list all files in repository (via git ls-tree)",
         "repos            list all initialized dotfile repositories",
@@ -234,10 +238,12 @@ def main():
 
     # try to initialize repository first
     if args[0] == "init":
-        if len(args) == 2:
+        if len(args) in (2, 3):
             repo_dir = args[1]
+            if len(args) == 3:
+                tree_dir = args[2]
             try:
-                retcode = repo.build(repo_dir=repo_dir)
+                retcode = repo.build(repo_dir, tree_dir)
                 if not debug:
                     update_config(config, repo_name,
                         repo_dir=repo_dir,
