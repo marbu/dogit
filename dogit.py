@@ -148,6 +148,7 @@ class DotfileRepo(object):
 
         self._git("add", git_ignore_path)
         self._git("commit", "-m", "initial commit (just gitignore)")
+        self._git("checkout", "-b", get_local_branch_name())
 
 
 def print_help():
