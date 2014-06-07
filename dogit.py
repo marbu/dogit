@@ -58,17 +58,37 @@ class DotfileRepo(object):
     Git repository wrapper.
     """
 
-    # predefined git commands
-    _commands = {
+    # dict of dogit specific git aliases
+    aliasess = {
         "ls": ["ls-tree", "--full-tree", "--name-only", "-r", "HEAD"],
         }
 
-    def __init__(self, repo_dir=None, tree_dir=None, debug=False):
+    def __init__(self, repo_dir, tree_dir=None, repo_name=None, debug=False):
         self.repo_dir = repo_dir
-        self.tree_dir = tree_dir
+        self.tree_dir = tree_dir or os.getenv("HOME")
         self.debug = debug
+        self.repo_name = repo_name # this is used for configuration dump only
 
-    def _git(self, *args):
+    @classmethod
+    def load_repo(cls, repo_name, config, debug=False):
+        """
+        Create repository object based on info from config file.
+        """
+        repo_dir = config.get(repo_name, "repo_dir")
+        tree_dir = config.get(repo_name, "tree_dir", None)
+        repo = cls(repo_dir, tree_dir, repo_name=repo_name, debug=debug)
+        return repo
+
+    def export_config(self):
+        """
+        Export dictionary with configuration of this repository.
+        """
+        conf = {
+            "repo_dir": self.repo_dir,
+            "tree_dir": self.tree_dir, }
+        return conf
+
+    def git(self, *args):
         """
         Wrap git command for given args list.
         """
@@ -98,74 +118,88 @@ class DotfileRepo(object):
         if len(args) < 1:
             return
         # if args doesn't match any predefined command, just run it as it is
-        args = self._commands.get(args[0]) or args
-        return self._git(*args)
+        args = self.aliasess.get(args[0]) or args
+        return self.git(*args)
 
-    def clone(self, repo_url, repo_dir):
+    @classmethod
+    def clone(cls, repo_name, repo_url, repo_dir, debug=False):
         """
         Setup repository by cloning from remote repo.
 
         Details: clone into bare repo, create local branch and switch into it
         without touching the working tree.
         """
-        self.repo_dir = repo_dir
         local_branch = get_local_branch_name()
-
-        self._git("clone", "--bare", repo_url, repo_dir)
+        # TODO: repo_tree undefined by default, fix it
+        repo = cls(repo_dir, tree_dir=None, repo_name=repo_name, debug=debug)
+        repo.git("clone", "--bare", repo_url, repo_dir)
         # create new local branch
-        self._git("branch", local_branch)
+        repo.git("branch", local_branch)
         # switch branch on bare repository (to not touch files in working tree)
-        self._git("symbolic-ref", "HEAD", "refs/heads/%s" % local_branch)
-        self._git("config", "--bool", "core.bare", "false")
-        self._git("reset")
-        if not self.debug:
+        repo.git("symbolic-ref", "HEAD", "refs/heads/%s" % local_branch)
+        repo.git("config", "--bool", "core.bare", "false")
+        repo.git("reset")
+        if not repo.debug:
             print "Check state of the repository:"
-        self._git("branch")
-        self._git("status", "-s")
+        repo.git("branch")
+        repo.git("status", "-s")
+        return repo
 
-    def build(self, repo_dir, tree_dir=None):
+    @classmethod
+    def init(cls, repo_name, repo_dir, repo_tree=None, debug=False):
         """
         Create new git repository for dotfiles.
         """
-        self.repo_dir = repo_dir
-        if tree_dir is not None:
-            self.tree_dir = tree_dir
+        repo = cls(repo_dir, repo_tree, repo_name=repo_name, debug=debug)
 
-        if self.debug:
-            print "mkdir %s" % self.repo_dir
+        if repo.debug:
+            print "mkdir %s" % repo.repo_dir
         else:
-            os.mkdir(self.repo_dir)
+            os.mkdir(repo.repo_dir)
 
-        self._git("init", self.repo_dir)
+        repo.git("init", repo.repo_dir)
 
-        git_ignore_path = os.path.join(self.tree_dir, ".gitignore")
-        if self.debug:
+        git_ignore_path = os.path.join(repo.tree_dir, ".gitignore")
+        if repo.debug:
             print "echo '*' > %s" % git_ignore_path
         else:
             git_ignore = open(git_ignore_path, "w")
             git_ignore.write("*\n")
             git_ignore.close()
 
-        self._git("add", git_ignore_path)
-        self._git("commit", "-m", "initial commit (just gitignore)")
-        self._git("checkout", "-b", get_local_branch_name())
+        repo.git("add", git_ignore_path)
+        repo.git("commit", "-m", "initial commit (just gitignore)")
+        repo.git("checkout", "-b", get_local_branch_name())
 
+        return repo
+
+def update_config(config, repo):
+    """
+    Update configuration for current repo.
+    """
+    if not config.has_section(repo.repo_name):
+        config.add_section(repo.repo_name)
+    for conf_name, conf_val in repo.export_config().iteritems():
+        config.set(repo.repo_name, conf_name, conf_val)
+    config_file = open(os.path.expanduser("~/.dotfile"), "w")
+    config.write(config_file)
+    config_file.close()
 
 def print_help():
     prog_name = os.path.basename(sys.argv[0])
     usage = "Usage: %s [options] <command> [command-options]\n" % prog_name
     options = [
         "-h, --help       show this help message and exit",
-        "-d, --debug      enable debug mode",
+        "-d, --debug      enable debug mode (aka dry run)",
         "-r, --repo name  use repository name instead of primary one",
         ]
     commands = [
-        "init repo [tree] create new dogit repository, where:",
-        "                 repo is bare git repo path (eg. ~/data/dot.git)",
-        "                 tree (optional) is tree dir path ($HOME by default)",
+        "init repo [tree] create new dogit repository",
+        "                 repo is path of bare git repo (eg. ~/data/dot.git)",
+        "                 tree is working tree path (~ by default)",
         "clone url path   clone repository from url into local repo on path",
-        "ls               list all files in repository (via git ls-tree)",
         "repos            list all initialized dotfile repositories",
+        "ls               list all files in repository (via git ls-tree)",
         "any-git-command  run this git operation on dotfile repo",
         ]
     print usage
@@ -176,24 +210,9 @@ def print_help():
     for cmd in commands:
         print "  %s" % cmd
 
-def update_config(config, repo_name, **kwargs):
-    """
-    Update configuration for current repo.
-    """
-    if not config.has_section(repo_name):
-        config.add_section(repo_name)
-    for conf_name, conf_val in kwargs.iteritems():
-        config.set(repo_name, conf_name, conf_val)
-    config_file = open(os.path.expanduser("~/.dotfile"), "w")
-    config.write(config_file)
-    config_file.close()
-
 def main():
-    # default configuration
-    repo_name = "primary-repo"
-    repo_dir = None
-    tree_dir = os.getenv("HOME")
-    debug = False
+    debug = False       # when True, no real actions are performed (dry run)
+    repo_name = None    # name of current working repository
 
     # using getopts config parsing to make wrapping of any command possible
     short_opts = "hdr:"
@@ -217,6 +236,7 @@ def main():
             debug = True
 
     # try to read config file
+    # TODO: use single config file
     config = ConfigParser.SafeConfigParser()
     files_used = config.read([
         os.path.expanduser("~/.dotfile"),
@@ -225,79 +245,62 @@ def main():
     if debug:
         sys.stderr.write("using config files: %s\n" % files_used)
 
-    if config.has_option(repo_name, "repo_dir"):
-        repo_dir = config.get(repo_name, "repo_dir")
-    if config.has_option(repo_name, "tree_dir"):
-        tree_dir = config.get(repo_name, "tree_dir")
+    # get list of repositories listed in config file
+    repo_list = config.sections()
 
-    repo = DotfileRepo(repo_dir, tree_dir, debug=debug)
+    # get name of working repository (specified or first one from config file)
+    if repo_name is None and len(repo_list) > 0:
+        repo_name = repo_list[0]
 
-    # show error when initializing repo which seems to already exist
-    if args[0] in ("init", "clone") and repo_dir is not None:
-        msg = "Error: repository named '{0:s}' is already defined: {1:s}\n"
-        sys.stderr.write(msg.format(repo_name, repo_dir))
-        return 1
-
-    # try to initialize repository first
-    if args[0] == "init":
-        if len(args) in (2, 3):
-            repo_dir = args[1]
-            if len(args) == 3:
-                tree_dir = args[2]
-            try:
-                retcode = repo.build(repo_dir, tree_dir)
-                if not debug:
-                    update_config(config, repo_name,
-                        repo_dir=repo_dir,
-                        tree_dir=tree_dir)
-            except (IOError, OSError), ex:
-                sys.stderr.write("Error: repository init failed: %s\n" % ex)
-                retcode = 1
-        else:
-            msg = "Error: specify path for the repository (eg. ~/.dotrepo.git)"
-            sys.stderr.write(msg + "\n\n")
-            print_help()
-            retcode = 1
-        return retcode
-
-    # clone repository from given url
-    if args[0] == "clone":
-        if len(args) == 3:
-            repo_url = args[1]
-            repo_dir = args[2]
-            try:
-                retcode = repo.clone(repo_url, repo_dir)
-                if not debug:
-                    update_config(config, repo_name,
-                        repo_dir=repo_dir,
-                        tree_dir=tree_dir)
-            except (IOError, OSError), ex:
-                sys.stderr.write("Error: repository clone failed: %s\n" % ex)
-                retcode = 1
-        else:
-            msg = "Error: specify source url for origin repo and local path"
-            sys.stderr.write(msg + "\n\n")
-            print_help()
-            retcode = 1
-        return retcode
-
-    # list names of all repositories
+    # cli commands: listing known repositories
     if args[0] == "repos":
-        for section in config.sections():
-            print section
+        for repo_name in repo_list:
+            print repo_name
         return
 
-    if repo_dir is None:
-        if repo_name == "primary-repo":
-            msg = "Error: Initialize primary repository first.\n\n"
-        else:
-            msg = "Error: No such repository: '%s'.\n\n" % repo_name
-        sys.stderr.write(msg)
-        print_help()
-        return 1
+    # cli commands: initialization
+    if args[0] in ("init", "clone"):
+        # don't touch a repository which is already defined
+        if repo_name in repo_list:
+            msg = "Error: repository {0:s} is already defined: %s\n"
+            sys.stderr.write(msg.format(repo_name))
+            return 1
+        # try to use default repo name if suitable
+        if repo_name is None:
+            if len(repo_list) == 0:
+                repo_name = "primary-repo"
+            else:
+                msg = ("Error: this is not 1st repository "
+                    "so you need to specify repo name to create another one\n")
+                sys.stderr.write(msg)
+                return 1
+        try:
+            if args[0] == "init":
+                repo = DotfileRepo.init(repo_name, *args[1:], debug=debug)
+            elif args[0] == "clone":
+                repo = DotfileRepo.clone(repo_name, *args[1:], debug=debug)
+            if not debug:
+                update_config(config, repo)
+        except (IOError, OSError), ex:
+            msg = "Error: repository {0:s} failed: %s\n".format(args[0], ex)
+            sys.stderr.write(msg)
+            return 1
+        except TypeError, ex:
+            msg = "Error: {0:s} command got wrong number of arguments\n\n"
+            sys.stderr.write(msg.format(args[0]))
+            sys.stderr.write(str(ex))
+            print_help()
+            return 1
+        return
 
-    # other commands are executed via git wrapper
-    return repo.wrap(args)
+    # for all the rest: try to run it as a git operation on dotfile repo
+    try:
+        repo = DotfileRepo.load_repo(repo_name, config, debug)
+        return repo.wrap(args)
+    except ConfigParser.Error, ex:
+        msg = "Error: wrong configuration: '%s'.\n" % ex
+        sys.stderr.write(msg)
+        return 1
 
 if __name__ == '__main__':
     sys.exit(main())
