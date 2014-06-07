@@ -256,7 +256,7 @@ def main():
     if args[0] in ("init", "clone"):
         # don't touch a repository which is already defined
         if repo_name in repo_list:
-            msg = "Error: repository {0:s} is already defined: %s\n"
+            msg = "Error: repository {0:s} is already defined\n"
             sys.stderr.write(msg.format(repo_name))
             return 1
         # try to use default repo name if suitable
