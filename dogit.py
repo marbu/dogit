@@ -181,7 +181,7 @@ def update_config(config, repo):
         config.add_section(repo.repo_name)
     for conf_name, conf_val in repo.export_config().iteritems():
         config.set(repo.repo_name, conf_name, conf_val)
-    config_file = open(os.path.expanduser("~/.dotfile"), "w")
+    config_file = open(os.path.expanduser("~/.dogit"), "w")
     config.write(config_file)
     config_file.close()
 
@@ -236,14 +236,8 @@ def main():
             debug = True
 
     # try to read config file
-    # TODO: use single config file
     config = ConfigParser.SafeConfigParser()
-    files_used = config.read([
-        os.path.expanduser("~/.dotfile"),
-        os.path.expanduser("~/.dogit"),
-        os.path.expanduser("~/.config/dogit.conf"),])
-    if debug:
-        sys.stderr.write("using config files: %s\n" % files_used)
+    config.read(os.path.expanduser("~/.dogit"))
 
     # get list of repositories listed in config file
     repo_list = config.sections()
