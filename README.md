@@ -1,4 +1,6 @@
-# Dotfiles management tool based on git
+# Dogit 
+
+This is readme file of Dogit, dotfiles management tool based on git.
 
 ## The idea
 
@@ -20,7 +22,7 @@ This idea itself is not new, see eg.:
  * [config](http://github.com/silas/scripts/blob/master/bin/config)
  * and many others ...
 
-## Example of such setup
+### Example of such approach
 
 To get a better idea what's going on here, let's see how it may work if done
 in bash by hand:
@@ -34,11 +36,11 @@ in bash by hand:
 
 This script provides the same functionality as init command:
 
-    $ dogit.py init ~/.config.git
+    $ dogit init ~/.config.git
 
 Then to include config file:
 
-    $ dogit.py add ~/.gitconfig
-    $ dogit.py commit -m 'initial git configuration'
+    $ dogit add ~/.gitconfig
+    $ dogit commit -m 'initial git configuration'
 
 Note: you can see what the wrapper does using '--debug' option.
