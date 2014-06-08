@@ -282,7 +282,6 @@ def main():
         except TypeError, ex:
             msg = "Error: {0:s} command got wrong number of arguments\n\n"
             sys.stderr.write(msg.format(args[0]))
-            sys.stderr.write(str(ex))
             print_help()
             return 1
         return
