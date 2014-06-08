@@ -130,19 +130,40 @@ class DotfileRepo(object):
         without touching the working tree.
         """
         local_branch = get_local_branch_name()
+
         # TODO: repo_tree undefined by default, fix it
         repo = cls(repo_dir, tree_dir=None, repo_name=repo_name, debug=debug)
+
+        # hack: using clone in bare mode because we are cloning into non-empty
+        # working tree (as git refuses to clone into non empty directory)
         repo.git("clone", "--bare", repo_url, repo_dir)
+
         # create new local branch
         repo.git("branch", local_branch)
-        # switch branch on bare repository (to not touch files in working tree)
+        # switch to the new local branch
+        # hack: on bare repository so that we don't touch files in working tree
         repo.git("symbolic-ref", "HEAD", "refs/heads/%s" % local_branch)
+
+        # make this repo non-bare again
         repo.git("config", "--bool", "core.bare", "false")
+        repo.git("config", "--bool", "core.logallrefupdates", "true")
+
+        # hack: proper setup of tracking branches
+        # this is necessary because the repo has been cloned in bare mode
+        repo.git("remote", "remove", "origin")
+        repo.git("remote", "add", "--track", "master", "origin", repo_url)
+        repo.git("fetch", "origin")
+        repo.git("branch", "--set-upstream-to=origin/master", "master")
+
+        # the last thing: reset so that there are no changes in staging area
         repo.git("reset")
+
+        # and done, so show an overview of current state
         if not repo.debug:
             print "Check state of the repository:"
         repo.git("branch")
         repo.git("status", "-s")
+
         return repo
 
     @classmethod
