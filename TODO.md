@@ -9,22 +9,6 @@ proposed features:
 
 ## Known problems
 
-### Remote is not there: missing fetch config
-
-See `dotfiles.git/config`:
-
-~~~
-[remote "origin"]
-    url = git@github.com:marbu/dotfiles.git
-~~~
-
-There is no fetch option, quickfix:
-
- * add `fetch = +refs/heads/*:refs/remotes/origin/*`
- * git fetch origin
-
-TODO: prevent this from happening
-
 ### Lost access rights
 
 Unfortunatelly git doesn't store unix access rights but exec flag, so when
