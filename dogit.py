@@ -158,6 +158,18 @@ class DotfileRepo(object):
         # the last thing: reset so that there are no changes in staging area
         repo.git("reset")
 
+        # feature: when working tree contains README file
+        # remove it in a first commit of local branch
+        rm_list = []
+        for readme_file in ("README", "README.md"):
+            retcode = repo.git("cat-file", "-e", "master:%s" % readme_file)
+            if retcode == 0:
+                rm_list.append(readme_file)
+        for readme_file in rm_list:
+            repo.git("rm", os.path.join(repo.tree_dir, readme_file))
+        if len(rm_list) > 0:
+            repo.git("commit", "-m", "initial local commit: remove readme")
+
         # and done, so show an overview of current state
         if not repo.debug:
             print "Check state of the repository:"
