@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 """
@@ -27,7 +27,7 @@ import subprocess
 import platform
 import getpass
 import getopt
-import ConfigParser
+import configparser
 
 
 def shell_cmd(cmd_list, debug=False):
@@ -42,7 +42,7 @@ def shell_cmd(cmd_list, debug=False):
             if ' ' in cmd:
                 cmd = "'%s'" % cmd
             cmd_list.append(cmd)
-        print " ".join(cmd_list)
+        print(" ".join(cmd_list))
     else:
         return subprocess.call(cmd_list)
 
@@ -75,7 +75,7 @@ class DotfileRepo(object):
         Create repository object based on info from config file.
         """
         repo_dir = config.get(repo_name, "repo_dir")
-        tree_dir = config.get(repo_name, "tree_dir", None)
+        tree_dir = config.get(repo_name, "tree_dir", fallback=None)
         repo = cls(repo_dir, tree_dir, repo_name=repo_name, debug=debug)
         return repo
 
@@ -101,7 +101,7 @@ class DotfileRepo(object):
             else:
                 # when not adding new module, it will cd into treedir itself
                 if self.debug:
-                    print "cd %s" % self.tree_dir
+                    print("cd %s" % self.tree_dir)
                 else:
                     os.chdir(self.tree_dir)
         else:
@@ -172,7 +172,7 @@ class DotfileRepo(object):
 
         # and done, so show an overview of current state
         if not repo.debug:
-            print "Check state of the repository:"
+            print("Check state of the repository:")
         repo.git("branch")
         repo.git("status", "-s")
 
@@ -186,7 +186,7 @@ class DotfileRepo(object):
         repo = cls(repo_dir, repo_tree, repo_name=repo_name, debug=debug)
 
         if repo.debug:
-            print "mkdir %s" % repo.repo_dir
+            print("mkdir %s" % repo.repo_dir)
         else:
             os.mkdir(repo.repo_dir)
 
@@ -194,7 +194,7 @@ class DotfileRepo(object):
 
         git_ignore_path = os.path.join(repo.tree_dir, ".gitignore")
         if repo.debug:
-            print "echo '*' > %s" % git_ignore_path
+            print("echo '*' > %s" % git_ignore_path)
         else:
             git_ignore = open(git_ignore_path, "w")
             git_ignore.write("*\n")
@@ -235,13 +235,13 @@ def print_help():
         "ls               list all files in repository (via git ls-tree)",
         "any-git-command  run this git operation on dotfile repo",
         ]
-    print usage
-    print "Options:"
+    print(usage)
+    print("Options:")
     for option in options:
-        print "  %s" % option
-    print "\nCommands:"
+        print("  %s" % option)
+    print("\nCommands:")
     for cmd in commands:
-        print "  %s" % cmd
+        print("  %s" % cmd)
 
 def main():
     debug = False       # when True, no real actions are performed (dry run)
@@ -269,7 +269,7 @@ def main():
             debug = True
 
     # try to read config file
-    config = ConfigParser.SafeConfigParser()
+    config = configparser.ConfigParser()
     config.read(os.path.expanduser("~/.dogit"))
 
     # get list of repositories listed in config file
@@ -282,7 +282,7 @@ def main():
     # cli commands: listing known repositories
     if args[0] == "repos":
         for repo_name in repo_list:
-            print repo_name
+            print(repo_name)
         return
 
     # cli commands: initialization
@@ -323,7 +323,7 @@ def main():
     try:
         repo = DotfileRepo.load_repo(repo_name, config, debug)
         return repo.wrap(args)
-    except ConfigParser.Error, ex:
+    except configparser.Error as ex:
         msg = "Error: wrong configuration: '%s'.\n" % ex
         sys.stderr.write(msg)
         return 1
